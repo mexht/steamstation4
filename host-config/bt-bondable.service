@@ -1,0 +1,13 @@
+[Unit]
+Description=Make the Bluetooth adapter bondable (needed to store controller link keys)
+After=bluetooth.service
+Requires=bluetooth.service
+PartOf=bluetooth.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/btmgmt bondable on
+RemainAfterExit=yes
+
+[Install]
+WantedBy=bluetooth.target

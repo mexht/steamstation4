@@ -1,0 +1,79 @@
+# Mesa 26.2.6 + PS4 Liverpool patch, built for generic x86-64 (no AVX2).
+pkgname=mesa-ps4
+pkgver=26.2.6
+pkgrel=1
+pkgdesc="Mesa 26.2.6 with Liverpool/Gladius raster-config support"
+arch=('x86_64')
+url="https://www.mesa3d.org"
+license=('custom')
+
+depends=(
+  libdrm libxxf86vm libxdamage libxshmfence libelf libunwind libglvnd
+  wayland lm_sensors vulkan-icd-loader zstd expat gcc-libs libxfixes
+  libx11 systemd-libs libxext libxcb glibc zlib python xcb-util-keysyms
+  'libLLVM.so=23.1-64'
+)
+
+makedepends=(
+  meson ninja python-mako python-ply python-packaging python-pyaml
+  cbindgen glslang directx-headers wayland-protocols libxml2 libva
+  elfutils libxrandr xorgproto llvm clang
+)
+
+provides=(
+  vulkan-mesa-layers opencl-driver opengl-driver vulkan-driver
+  vulkan-intel vulkan-nouveau vulkan-radeon vulkan-swrast vulkan-virtio
+  libva-mesa-driver mesa-libgl mesa vulkan-mesa-device-select
+)
+conflicts=(
+  vulkan-mesa-implicit-layers
+  vulkan-mesa-layers opencl-clover-mesa vulkan-intel vulkan-nouveau
+  vulkan-radeon vulkan-swrast vulkan-virtio libva-mesa-driver mesa-libgl
+  mesa vulkan-mesa-device-select opencl-rusticl-mesa
+)
+
+source=('mesa-26.2.6-ps4.tar.gz')
+sha256sums=('SKIP')
+options=(!lto !debug)
+
+build() {
+  cd mesa-26.2.6
+  [ -d _build ] || meson setup _build \
+    -D android-libbacktrace=disabled \
+    -D b_ndebug=true \
+    -D b_lto=false \
+    -D egl=enabled \
+    -D gallium-drivers=radeonsi,llvmpipe,softpipe,zink \
+    -D gallium-extra-hud=true \
+    -D gallium-rusticl=false \
+    -D gallium-va=enabled \
+    -D gbm=enabled \
+    -D gles1=disabled \
+    -D gles2=enabled \
+    -D glvnd=enabled \
+    -D glx=dri \
+    -D libunwind=enabled \
+    -D llvm=enabled \
+    -D lmsensors=enabled \
+    -D microsoft-clc=disabled \
+    -D platforms=x11,wayland \
+    -D valgrind=disabled \
+    -D video-codecs=all \
+    -D vulkan-drivers=amd \
+    -D vulkan-layers=device-select,overlay \
+    -D tools=[] \
+    -D zstd=enabled \
+    -D buildtype=release \
+    -D prefix=/usr \
+    -D sysconfdir=/etc \
+    --wrap-mode=nofallback
+  ninja -C _build
+}
+
+package() {
+  DESTDIR="$pkgdir" ninja -C mesa-26.2.6/_build install
+  rm -f "$pkgdir/usr/bin/mesa-overlay-control.py"
+  rmdir "$pkgdir/usr/bin" 2>/dev/null || true
+  ln -s /usr/lib/libGLX_mesa.so.0 "$pkgdir/usr/lib/libGLX_indirect.so.0"
+  install -Dm644 mesa-26.2.6/docs/license.rst "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}

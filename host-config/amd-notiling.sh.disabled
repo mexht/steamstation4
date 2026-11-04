@@ -1,0 +1,10 @@
+# DISABLED: stock Mesa mis-identified the GPU as Kaveri; the PS4-patched Mesa 26.2.6
+# (see mesa-ps4/) fixes the raster config, so the AMD_DEBUG workaround is no longer
+# exported. Renaming this file to *.sh re-enables it as a fallback.
+
+# PS4 GFX7.1 workarounds:
+#  - notiling: texture tiling corrupts sampled textures (stripes/blocks)
+#  - nodisplaytiling: display path misreads tiled scanout buffers (fullscreen)
+#  - noefc/nocmask/nofmask/nohyperz: stop fast-clear/HiZ metadata producing
+#    black blocks in dynamic text atlases and Steam UI images
+export AMD_DEBUG=notiling,nodisplaytiling,noefc,nocmask,nofmask,nohyperz

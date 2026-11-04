@@ -1,0 +1,85 @@
+# 32-bit Mesa 26.2.6 + PS4 Liverpool patch, built for generic x86-64.
+pkgname=lib32-mesa-ps4
+pkgver=26.2.6
+pkgrel=1
+pkgdesc="32-bit Mesa 26.2.6 with Liverpool/Gladius raster-config support"
+arch=('x86_64')
+url="https://www.mesa3d.org"
+license=('custom')
+
+depends=(
+  lib32-gcc-libs lib32-libdrm lib32-wayland lib32-libxxf86vm
+  lib32-libxdamage lib32-libxshmfence lib32-libelf lib32-libunwind
+  lib32-lm_sensors glslang lib32-vulkan-icd-loader lib32-zstd lib32-libxcb
+  lib32-libxfixes lib32-expat lib32-libxext lib32-libx11 lib32-zlib
+  lib32-glibc lib32-spirv-tools
+)
+
+makedepends=(
+  meson ninja python-mako python-packaging python-pyaml lib32-libxml2
+  xorgproto lib32-libglvnd wayland-protocols lib32-libva lib32-libxrandr
+  lib32-llvm lib32-llvm-libs lib32-spirv-tools pkgconf glslang
+)
+
+provides=(
+  lib32-mesa lib32-vulkan-intel lib32-vulkan-radeon lib32-vulkan-mesa-layers
+  lib32-libva-mesa-driver lib32-mesa-libgl lib32-opengl-driver
+  lib32-vulkan-driver lib32-vulkan-mesa-device-select
+)
+conflicts=(
+  lib32-vulkan-mesa-implicit-layers
+  lib32-mesa lib32-vulkan-intel lib32-vulkan-radeon lib32-vulkan-mesa-layers
+  lib32-libva-mesa-driver lib32-mesa-libgl lib32-vulkan-mesa-device-select
+)
+
+source=('mesa-26.2.6-ps4.tar.gz' 'llvm32.native')
+sha256sums=('SKIP' 'SKIP')
+options=(!lto !debug)
+
+build() {
+  cd mesa-26.2.6
+  export CC="${CC:-gcc} -m32"
+  export CXX="${CXX:-g++} -m32"
+  export PKG_CONFIG=/usr/bin/i686-pc-linux-gnu-pkg-config
+  [ -d _build32 ] || meson setup _build32 \
+    --native-file "$srcdir/llvm32.native" \
+    --libdir=/usr/lib32 \
+    -D b_ndebug=true \
+    -D buildtype=release \
+    -D prefix=/usr \
+    -D sysconfdir=/etc \
+    -D platforms=x11,wayland \
+    -D gallium-drivers=radeonsi,llvmpipe,softpipe,zink \
+    -D vulkan-drivers=amd \
+    -D egl=enabled \
+    -D gallium-extra-hud=true \
+    -D gallium-rusticl=false \
+    -D gallium-va=enabled \
+    -D gbm=enabled \
+    -D gles1=disabled \
+    -D gles2=enabled \
+    -D glvnd=enabled \
+    -D glx=dri \
+    -D libunwind=enabled \
+    -D llvm=enabled \
+    -D lmsensors=enabled \
+    -D valgrind=disabled \
+    -D tools=[] \
+    -D zstd=enabled \
+    -D microsoft-clc=disabled \
+    -D video-codecs=all \
+    -D vulkan-layers=device-select,overlay \
+    --wrap-mode=nofallback
+  ninja -C _build32
+}
+
+package() {
+  DESTDIR="$pkgdir" ninja -C mesa-26.2.6/_build32 install
+  rm -rf "$pkgdir"/etc "$pkgdir"/usr/include "$pkgdir"/usr/share/glvnd \
+         "$pkgdir"/usr/share/drirc.d "$pkgdir"/usr/share/vulkan/explicit_layer.d
+  rm -f "$pkgdir"/usr/share/vulkan/implicit_layer.d/VkLayer_MESA_device_select.json
+  rm -f "$pkgdir/usr/bin/mesa-overlay-control.py"
+  rmdir "$pkgdir/usr/bin" 2>/dev/null || true
+  ln -s /usr/lib32/libGLX_mesa.so.0 "$pkgdir/usr/lib32/libGLX_indirect.so.0"
+  install -Dm644 mesa-26.2.6/docs/license.rst "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}

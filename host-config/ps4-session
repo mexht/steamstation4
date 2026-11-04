@@ -1,0 +1,26 @@
+#!/bin/sh
+# PS4 desktop session: openbox + Steam Big Picture.
+export XDG_RUNTIME_DIR=/run/user/1000
+export DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus
+export DISPLAY=:0
+export XAUTHORITY=/home/ps4/.Xauthority
+# AMD_DEBUG workaround disabled: Mesa now identifies CHIP_LIVERPOOL
+# export AMD_DEBUG=notiling,nodisplaytiling,noefc,nocmask,nofmask,nohyperz
+# keep the screen from blanking mid-game (PS4 display path does not resume cleanly)
+xset s off -dpms >/dev/null 2>&1 || true
+# Steam's UI installs a stub Bluetooth backend unless
+# Plat_IsSteamOSManagementEnabled() returns true (it is a SteamOS-launch gate),
+# which hides Big Picture's Bluetooth UI. libsteambt.so overrides only that
+# function. It is 32-bit because the UI lives in the 32-bit steam process;
+# Plat_IsSteamOS() itself stays false, so the SteamOS first-run OOBE does not
+# start (do not use "-steamos3", which trips the OOBE).
+export LD_PRELOAD=/usr/local/lib/libsteambt.so
+# The real BlueZ backend also needs bluetoothd up before the UI starts; wait 10 s.
+i=0
+while [ "$i" -lt 20 ]; do
+    busctl --system list 2>/dev/null | grep -q '^org\.bluez' && break
+    i=$((i + 1))
+    sleep 0.5
+done
+openbox-session >/tmp/openbox.log 2>&1 &
+exec /usr/bin/steam -bigpicture
