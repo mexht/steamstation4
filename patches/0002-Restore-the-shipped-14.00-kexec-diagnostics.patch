@@ -1,0 +1,97 @@
+From 2a01b81100d8fd7099d6d3842ebc925125e2ca7a Mon Sep 17 00:00:00 2001
+From: mex <mex@localhost>
+Date: Wed, 4 Nov 2026 20:08:13 +0100
+Subject: [PATCH 2/2] Restore the shipped 14.00 kexec diagnostics
+
+The first reconstruction dropped seven kern.printf calls that the
+hardware-proven 16,040-byte blob carries. Without them the hook freezes
+after AUTO_TRIGGER (2/2 runs, at different points); with them the blob
+compiles byte-identical to the shipped one (961037b6...cc5f05) and the
+payload boots Linux on hardware (2026-11-04 20:07). Keep them.
+---
+ linux/ps4-kexec-common/kernel.c     | 13 +++++++------
+ linux/ps4-kexec-common/kexec.c      |  7 +++++++
+ linux/ps4-kexec-common/linux_boot.c |  1 +
+ 3 files changed, 15 insertions(+), 6 deletions(-)
+
+diff --git a/linux/ps4-kexec-common/kernel.c b/linux/ps4-kexec-common/kernel.c
+index aee9aa2..9b32f1b 100644
+--- a/linux/ps4-kexec-common/kernel.c
++++ b/linux/ps4-kexec-common/kernel.c
+@@ -154,15 +154,16 @@ void *kernel_alloc_contig(size_t size)
+ {
+     // use kmem_alloc_contig instead of contigalloc to avoid messing with a malloc_type...
+     vm_offset_t ret = 0;
++    int spins = 0;
+     while(!(ret = kern.kmem_alloc_contig(
+                  *kern.kernel_map, size, M_ZERO | M_WAITOK, (vm_paddr_t)0,
+-                 ~(vm_paddr_t)0, 1, 0, VM_MEMATTR_DEFAULT)));
++                 ~(vm_paddr_t)0, 1, 0, VM_MEMATTR_DEFAULT)))
++        spins++;
+ 
+-    /*if (!ret) {
+-        kern.printf("Failed to allocate %zud bytes\n", size);
+-        return NULL;
+-    }*/
+-    return (void *)PA_TO_DM(kern.pmap_extract(kern.kernel_pmap_store, ret));
++    vm_paddr_t pa = kern.pmap_extract(kern.kernel_pmap_store, ret);
++    kern.printf("DIAG alloc %zu: spins=%d va=0x%lx pa=0x%lx dm=0x%lx\n",
++                size, spins, ret, pa, PA_TO_DM(pa));
++    return (void *)PA_TO_DM(pa);
+ }
+ 
+ void kernel_free_contig(void *addr, size_t size)
+diff --git a/linux/ps4-kexec-common/kexec.c b/linux/ps4-kexec-common/kexec.c
+index 15e34e8..aa92122 100644
+--- a/linux/ps4-kexec-common/kexec.c
++++ b/linux/ps4-kexec-common/kexec.c
+@@ -132,6 +132,8 @@ int sys_kexec(void *td, struct sys_kexec_args *uap)
+         err = ENOENT;
+         goto cleanup;
+     }
++    kern.printf("DIAG icc_query_nowait=%p\n", icc_query_nowait);
++    kern.printf("DIAG gpu stage start\n");
+ 
+     // Set gpu frequencies and pstate   
+     //                      FAT&SLIM / PRO
+@@ -162,6 +164,7 @@ int sys_kexec(void *td, struct sys_kexec_args *uap)
+     kern.set_gpu_freq(3, 800); //800 //800
+     kern.set_gpu_freq(7, 673); //673 //673
+     kern.update_vddnp(0x12);
++    kern.printf("DIAG gpu stage done\n");
+ 
+     // Copy in kernel image
+     image = kernel_alloc_contig(uap->image_size);
+@@ -171,6 +174,8 @@ int sys_kexec(void *td, struct sys_kexec_args *uap)
+         goto cleanup;
+     }
+     err = copyin(uap->image, image, uap->image_size);
++    kern.printf("DIAG copyin image -> %d (dst=%p, %zu bytes)\n",
++                err, image, uap->image_size);
+     if (err) {
+         kern.printf("Failed to copy in image\n");
+         goto cleanup;
+@@ -193,6 +198,8 @@ int sys_kexec(void *td, struct sys_kexec_args *uap)
+ 
+     if (initramfs_size) {
+         err = copyin(uap->initramfs, initramfs + firmware_size, initramfs_size);
++        kern.printf("DIAG copyin initramfs -> %d (dst=%p, %zu bytes)\n",
++                    err, initramfs + firmware_size, initramfs_size);
+         if (err) {
+             kern.printf("Failed to copy in initramfs\n");
+             goto cleanup;
+diff --git a/linux/ps4-kexec-common/linux_boot.c b/linux/ps4-kexec-common/linux_boot.c
+index 885722f..b119646 100644
+--- a/linux/ps4-kexec-common/linux_boot.c
++++ b/linux/ps4-kexec-common/linux_boot.c
+@@ -454,6 +454,7 @@ int hook_icc_query_nowait(u8 *icc_msg)
+     // We need reset bt/wifi, so disable it, we re-enable it when the kernel boot
+     //In alternative we can re-enable it here, but sometimes that give problems.. 
+     kern.wlanbt(0x2);
++    kern.printf("DIAG hook: wlanbt disabled\n");
+ 
+     fix_acpi_tables((void*)PA_TO_DM(0xe0000), 0xe0000);
+ 
+-- 
+2.56.0
+

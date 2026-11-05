@@ -76,7 +76,7 @@ enable them once:
 ```sh
 pacman -S bluez bluez-utils          # 5.87-2
 systemctl enable --now bluetooth
-bluetoothctl show                    # Powered: yes, Controller 90:CD:B6:B5:F7:B2
+bluetoothctl show                    # Powered: yes, Controller <adapter-mac>
 ```
 
 `ps4-session` waits up to 10 s for `org.bluez` before starting Steam, because the real
@@ -155,7 +155,7 @@ again; re-check `steamui_system.txt` for `Initializing bluetooth manager: stub` 
 the shim.
 
 The module is the Marvell SD8797 combo (`btmrvl_sdio`, firmware
-`/lib/firmware/mrvl/sd8797_uapsta.bin`); the adapter MAC `90:CD:B6:B5:F7:B2` is the
+`/lib/firmware/mrvl/sd8797_uapsta.bin`); the adapter MAC `<adapter-mac>` is the
 Foxconn factory MAC.
 
 Automatic Orbis→Linux controller hand-off is not possible without Orbis's link key

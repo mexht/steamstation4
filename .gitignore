@@ -1,4 +1,20 @@
-./artifacts
-./benchmarks
-./ps4-linux-loader
+# Nested upstream checkout - it has its own Git repository and is not part of
+# this project. Build against it with build.sh, but do not commit it here.
+ps4-linux-loader/
 
+# Local investigation artefacts and sampler logs
+artifacts/
+benchmarks/
+
+# Build output
+*.o
+*.a
+*.pyc
+__pycache__/
+/out/
+/build/
+
+# Editor / OS noise
+.DS_Store
+*~
+*.swp

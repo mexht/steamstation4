@@ -1,1 +1,1 @@
-panic=0 clocksource=tsc consoleblank=0 net.ifnames=0 radeon.dpm=0 amdgpu.dpm=0 drm.debug=0 debug ignore_loglevel console=tty0 video=HDMI-A-1:1920x1080@60 ip=192.168.1.187::192.168.1.1:255.255.255.0::eth0:off netconsole=6666@192.168.1.187/eth0,6666@192.168.1.10/d8:3a:dd:e2:b9:b2
+panic=0 clocksource=tsc consoleblank=0 net.ifnames=0 radeon.dpm=0 amdgpu.dpm=0 drm.debug=0 debug ignore_loglevel console=tty0 video=HDMI-A-1:1920x1080@60
