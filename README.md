@@ -1,4 +1,4 @@
-# SteamStation4
+# SteamStation4 [AI GENERATED]
 
 **Boot Linux on a PlayStation 4 (firmware 14.00) from Orbis in one action**, then
 run Steam Big Picture with the GPU, session and Bluetooth fixes that make the
